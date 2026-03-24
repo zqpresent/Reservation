@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自习座位预约系统 · 搜索座位</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; background: #f0f4f8; }
+        .nav-gradient { background: linear-gradient(135deg, #1e3a5f, #2d6a9f); }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+        .input-field { border: 1.5px solid #e2e8f0; transition: all 0.2s; }
+        .input-field:focus { border-color: #2d6a9f; box-shadow: 0 0 0 3px rgba(45,106,159,0.12); outline: none; }
+        .btn-primary { background: linear-gradient(135deg, #2d6a9f, #1a8a6e); transition: all 0.2s; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,159,0.3); }
+        .seat-result-card {
+            background: white; border-radius: 0.875rem;
+            border: 2px solid transparent;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            transition: all 0.2s;
+        }
+        .seat-result-card:hover { border-color: #2d6a9f; transform: translateY(-2px); }
+        .tag { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+        .tag-power { background: #fef9c3; color: #a16207; }
+        .tag-window { background: #dbeafe; color: #1d4ed8; }
+        .nav-link:hover { background: rgba(255,255,255,0.15); border-radius: 8px; }
+        .nav-link.active { background: rgba(255,255,255,0.2); border-radius: 8px; }
+        .time-btn { border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+        .time-btn:hover { border-color: #2d6a9f; background: #eff6ff; }
+        .time-btn.selected { border-color: #2d6a9f; background: #eff6ff; color: #2d6a9f; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <nav class="nav-gradient text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+                <span class="font-bold text-lg">自习座位预约</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <a href="index.html" class="nav-link px-3 py-1.5 text-sm">首页</a>
+                <a href="search.html" class="nav-link active px-3 py-1.5 text-sm">搜索座位</a>
+                <a href="reservations.html" class="nav-link px-3 py-1.5 text-sm">我的预约</a>
+                <a href="history.html" class="nav-link px-3 py-1.5 text-sm">历史记录</a>
+                <div class="ml-3 pl-3 border-l border-white/30">
+                    <button onclick="handleLogout()" class="text-sm text-red-300 hover:text-red-100 transition">退出</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-6xl mx-auto px-4 py-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">搜索可用座位</h2>
+
+        <!-- 筛选面板 -->
+        <div class="card p-5 mb-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1.5">日期</label>
+                    <input id="filter-date" type="date" class="input-field w-full px-3 py-2.5 rounded-xl text-sm text-gray-700">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1.5">开始时间</label>
+                    <select id="filter-start" class="input-field w-full px-3 py-2.5 rounded-xl text-sm text-gray-700 bg-white">
+                        <option value="">选择开始时间</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1.5">结束时间</label>
+                    <select id="filter-end" class="input-field w-full px-3 py-2.5 rounded-xl text-sm text-gray-700 bg-white">
+                        <option value="">选择结束时间</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1.5">自习室（选填）</label>
+                    <select id="filter-room" class="input-field w-full px-3 py-2.5 rounded-xl text-sm text-gray-700 bg-white">
+                        <option value="">全部自习室</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 mb-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input id="filter-power" type="checkbox" class="w-4 h-4 rounded text-blue-600">
+                    <span class="text-sm text-gray-700">🔌 有插座</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input id="filter-window" type="checkbox" class="w-4 h-4 rounded text-blue-600">
+                    <span class="text-sm text-gray-700">🪟 靠窗</span>
+                </label>
+            </div>
+
+            <button onclick="doSearch()" class="btn-primary text-white px-6 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                搜索
+            </button>
+        </div>
+
+        <!-- 错误/提示 -->
+        <div id="search-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm"></div>
+
+        <!-- 搜索结果 -->
+        <div id="results-area" class="hidden">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold text-gray-700">搜索结果</h3>
+                <span id="result-count" class="text-sm text-gray-400"></span>
+            </div>
+            <div id="results-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            <div id="no-result" class="hidden card p-10 text-center text-gray-400">
+                <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                没有找到符合条件的座位
+            </div>
+        </div>
+    </div>
+
+    <!-- 预约确认弹窗 -->
+    <div id="book-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <h3 class="font-bold text-gray-800 text-lg mb-4">确认预约</h3>
+            <div id="book-info" class="bg-blue-50 rounded-xl p-4 mb-5 text-sm text-blue-800 space-y-1.5"></div>
+            <div id="book-error" class="hidden mb-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm"></div>
+            <div class="flex gap-3">
+                <button onclick="closeBookModal()" class="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition">取消</button>
+                <button id="confirm-btn" onclick="confirmBook()" class="flex-1 btn-primary text-white py-2.5 rounded-xl text-sm font-medium">确认预约</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        if (!getToken()) window.location.href = 'login.html';
+
+        // 当前预约的座位数据
+        let bookingData = null;
+
+        // 初始化日期为今天
+        const todayStr = new Date().toISOString().slice(0, 10);
+        document.getElementById('filter-date').value = todayStr;
+        document.getElementById('filter-date').min = todayStr;
+
+        // 从URL参数读取 room_id
+        const urlParams = new URLSearchParams(window.location.search);
+        const preRoomId = urlParams.get('room_id');
+
+        // 生成整点选项 (6:00-22:00)
+        function populateTimeOptions() {
+            const hours = [];
+            for (let h = 6; h <= 22; h++) hours.push(`${String(h).padStart(2,'0')}:00`);
+
+            const startSel = document.getElementById('filter-start');
+            const endSel = document.getElementById('filter-end');
+            hours.forEach(h => {
+                startSel.innerHTML += `<option value="${h}">${h}</option>`;
+                endSel.innerHTML += `<option value="${h}">${h}</option>`;
+            });
+        }
+
+        // 加载自习室列表
+        async function loadRooms() {
+            try {
+                const rooms = await api.getRooms();
+                const sel = document.getElementById('filter-room');
+                rooms.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r.id;
+                    opt.textContent = r.name;
+                    sel.appendChild(opt);
+                });
+                if (preRoomId) sel.value = preRoomId;
+            } catch {}
+        }
+
+        async function doSearch() {
+            const date = document.getElementById('filter-date').value;
+            const startTime = document.getElementById('filter-start').value;
+            const endTime = document.getElementById('filter-end').value;
+            const roomId = document.getElementById('filter-room').value;
+            const power = document.getElementById('filter-power').checked;
+            const window_ = document.getElementById('filter-window').checked;
+
+            const errEl = document.getElementById('search-error');
+            errEl.classList.add('hidden');
+
+            if (!date) { errEl.textContent = '请选择日期'; errEl.classList.remove('hidden'); return; }
+            if (!startTime) { errEl.textContent = '请选择开始时间'; errEl.classList.remove('hidden'); return; }
+            if (!endTime) { errEl.textContent = '请选择结束时间'; errEl.classList.remove('hidden'); return; }
+
+            const [sh, sm] = startTime.split(':').map(Number);
+            const [eh, em] = endTime.split(':').map(Number);
+            if (sh * 60 + sm >= eh * 60 + em) {
+                errEl.textContent = '结束时间必须晚于开始时间'; errEl.classList.remove('hidden'); return;
+            }
+            if ((eh * 60 + em) - (sh * 60 + sm) > 240) {
+                errEl.textContent = '单次预约最多4小时'; errEl.classList.remove('hidden'); return;
+            }
+
+            const params = { date, start_time: startTime + ':00', end_time: endTime + ':00' };
+            if (roomId) params.room_id = roomId;
+            if (power) params.has_power = 1;
+            if (window_) params.by_window = 1;
+
+            try {
+                const seats = await api.searchSeats(params);
+                renderResults(seats, date, startTime, endTime);
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        function renderResults(seats, date, startTime, endTime) {
+            document.getElementById('results-area').classList.remove('hidden');
+            const grid = document.getElementById('results-grid');
+            const noResult = document.getElementById('no-result');
+
+            if (!seats || seats.length === 0) {
+                grid.innerHTML = '';
+                noResult.classList.remove('hidden');
+                document.getElementById('result-count').textContent = '0 个结果';
+                return;
+            }
+
+            noResult.classList.add('hidden');
+            document.getElementById('result-count').textContent = `${seats.length} 个可用座位`;
+
+            grid.innerHTML = seats.map(seat => `
+                <div class="seat-result-card p-5">
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <h4 class="font-semibold text-gray-800">${seat.room_name || '未知自习室'}</h4>
+                            <p class="text-2xl font-bold text-blue-600 mt-1">座位 ${seat.seat_no}</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-400">${startTime} - ${endTime}</div>
+                            <div class="text-xs text-green-600 mt-1 font-medium">✓ 可预约</div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 mb-4">
+                        ${seat.has_power ? '<span class="tag tag-power">🔌 有插座</span>' : ''}
+                        ${seat.by_window ? '<span class="tag tag-window">🪟 靠窗</span>' : ''}
+                    </div>
+                    <button onclick='openBookModal(${JSON.stringify(seat)}, "${date}", "${startTime}", "${endTime}")'
+                        class="w-full btn-primary text-white py-2.5 rounded-xl text-sm font-medium">
+                        预约此座位
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function openBookModal(seat, date, startTime, endTime) {
+            bookingData = { seat_id: seat.id, date, start_time: startTime + ':00', end_time: endTime + ':00' };
+            document.getElementById('book-info').innerHTML = `
+                <div class="flex items-center gap-2"><span class="font-medium">自习室：</span>${seat.room_name || '未知'}</div>
+                <div class="flex items-center gap-2"><span class="font-medium">座位号：</span>${seat.seat_no}</div>
+                <div class="flex items-center gap-2"><span class="font-medium">日期：</span>${date}</div>
+                <div class="flex items-center gap-2"><span class="font-medium">时间：</span>${startTime} - ${endTime}</div>
+                ${seat.has_power ? '<div>🔌 有插座</div>' : ''}
+                ${seat.by_window ? '<div>🪟 靠窗</div>' : ''}
+            `;
+            document.getElementById('book-error').classList.add('hidden');
+            document.getElementById('confirm-btn').textContent = '确认预约';
+            document.getElementById('confirm-btn').disabled = false;
+            document.getElementById('book-modal').classList.remove('hidden');
+        }
+
+        function closeBookModal() {
+            document.getElementById('book-modal').classList.add('hidden');
+            bookingData = null;
+        }
+
+        async function confirmBook() {
+            if (!bookingData) return;
+            const btn = document.getElementById('confirm-btn');
+            btn.textContent = '预约中...';
+            btn.disabled = true;
+
+            try {
+                await api.createReservation(bookingData);
+                document.getElementById('book-info').innerHTML = `
+                    <div class="text-center py-2">
+                        <div class="text-3xl mb-2">✅</div>
+                        <div class="font-semibold text-green-700">预约成功！</div>
+                        <div class="text-green-600 text-xs mt-1">请记得在预约时间后15分钟内签到</div>
+                    </div>
+                `;
+                btn.textContent = '查看我的预约';
+                btn.disabled = false;
+                btn.onclick = () => window.location.href = 'reservations.html';
+            } catch (err) {
+                document.getElementById('book-error').textContent = err.message;
+                document.getElementById('book-error').classList.remove('hidden');
+                btn.textContent = '确认预约';
+                btn.disabled = false;
+            }
+        }
+
+        document.getElementById('book-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeBookModal();
+        });
+
+        function handleLogout() { clearToken(); window.location.href = 'login.html'; }
+
+        populateTimeOptions();
+        loadRooms();
+    </script>
+</body>
+</html>

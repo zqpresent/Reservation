@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自习座位预约系统 · 我的预约</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; background: #f0f4f8; }
+        .nav-gradient { background: linear-gradient(135deg, #1e3a5f, #2d6a9f); }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+        .nav-link:hover { background: rgba(255,255,255,0.15); border-radius: 8px; }
+        .nav-link.active { background: rgba(255,255,255,0.2); border-radius: 8px; }
+        .tab-btn { padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; color: #6b7280; }
+        .tab-btn.active { background: #2d6a9f; color: white; }
+        .tab-btn:not(.active):hover { background: #e0edf7; color: #2d6a9f; }
+        .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+        .badge-pending { background: #fef9c3; color: #a16207; }
+        .badge-checked_in { background: #dcfce7; color: #16a34a; }
+        .badge-cancelled { background: #f3f4f6; color: #9ca3af; }
+        .badge-expired { background: #fee2e2; color: #dc2626; }
+        .btn-primary { background: linear-gradient(135deg, #2d6a9f, #1a8a6e); transition: all 0.2s; }
+        .btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; transition: all 0.15s; }
+        .btn-danger:hover { background: #fecaca; }
+        .input-field { border: 1.5px solid #e2e8f0; transition: all 0.2s; }
+        .input-field:focus { border-color: #2d6a9f; outline: none; box-shadow: 0 0 0 3px rgba(45,106,159,0.12); }
+    </style>
+</head>
+<body>
+    <nav class="nav-gradient text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+                <span class="font-bold text-lg">自习座位预约</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <a href="index.html" class="nav-link px-3 py-1.5 text-sm">首页</a>
+                <a href="search.html" class="nav-link px-3 py-1.5 text-sm">搜索座位</a>
+                <a href="reservations.html" class="nav-link active px-3 py-1.5 text-sm">我的预约</a>
+                <a href="history.html" class="nav-link px-3 py-1.5 text-sm">历史记录</a>
+                <div class="ml-3 pl-3 border-l border-white/30">
+                    <button onclick="handleLogout()" class="text-sm text-red-300 hover:text-red-100 transition">退出</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4 py-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">我的预约</h2>
+
+        <!-- Tab 筛选 -->
+        <div class="flex items-center gap-2 mb-5">
+            <button class="tab-btn active" onclick="switchStatus('pending', this)">进行中</button>
+            <button class="tab-btn" onclick="switchStatus('checked_in', this)">已签到</button>
+            <button class="tab-btn" onclick="switchStatus('cancelled', this)">已取消</button>
+            <button class="tab-btn" onclick="switchStatus('violated', this)">违约取消</button>
+        </div>
+
+        <!-- 列表 -->
+        <div id="loading" class="card p-10 text-center text-gray-400">加载中...</div>
+        <div id="empty" class="hidden card p-12 text-center text-gray-400">
+            <svg class="w-14 h-14 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p>暂无预约记录</p>
+            <a href="search.html" class="inline-block mt-3 text-blue-500 text-sm hover:underline">去预约座位 →</a>
+        </div>
+        <div id="reservation-list" class="hidden space-y-3"></div>
+    </div>
+
+    <!-- 签到弹窗 -->
+    <div id="checkin-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <h3 class="font-bold text-gray-800 text-lg mb-2">座位签到</h3>
+            <p class="text-gray-500 text-sm mb-4">请输入自习室当日动态签到码</p>
+            <div id="checkin-seat-info" class="bg-blue-50 rounded-xl p-3 mb-4 text-sm text-blue-700"></div>
+            <input id="checkin-code" type="text" maxlength="10" placeholder="请输入签到码"
+                class="input-field w-full px-4 py-3 rounded-xl text-sm text-center text-lg font-mono tracking-widest mb-4">
+            <div id="checkin-error" class="hidden mb-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm"></div>
+            <div class="flex gap-3">
+                <button onclick="closeCheckin()" class="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition">取消</button>
+                <button id="checkin-btn" onclick="doCheckin()" class="flex-1 btn-primary text-white py-2.5 rounded-xl text-sm font-medium">确认签到</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 取消确认弹窗 -->
+    <div id="cancel-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <h3 class="font-bold text-gray-800 text-lg mb-2">取消预约</h3>
+            <p class="text-gray-500 text-sm mb-5">确定要取消这次预约吗？取消后座位将被释放。</p>
+            <div id="cancel-info" class="bg-gray-50 rounded-xl p-3 mb-5 text-sm text-gray-600"></div>
+            <div class="flex gap-3">
+                <button onclick="closeCancelModal()" class="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition">返回</button>
+                <button id="cancel-confirm-btn" onclick="doCancel()" class="flex-1 bg-red-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 transition">确认取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        if (!getToken()) window.location.href = 'login.html';
+
+        let currentStatus = 'pending';
+        let cancelTargetId = null;
+        let checkinTargetId = null;
+
+        const statusLabel = {
+            pending: '待签到',
+            checked_in: '已签到',
+            cancelled: '已取消',
+            violated: '违约取消'
+        };
+        const statusClass = {
+            pending: 'badge-pending',
+            checked_in: 'badge-checked_in',
+            cancelled: 'badge-cancelled',
+            violated: 'badge-expired'
+        };
+
+        async function loadReservations(status) {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('empty').classList.add('hidden');
+            document.getElementById('reservation-list').classList.add('hidden');
+
+            try {
+                const list = await api.getMyReservations(status);
+                document.getElementById('loading').classList.add('hidden');
+
+                if (!list || list.length === 0) {
+                    document.getElementById('empty').classList.remove('hidden');
+                    return;
+                }
+
+                const el = document.getElementById('reservation-list');
+                el.classList.remove('hidden');
+                el.innerHTML = list.map(r => `
+                    <div class="card p-5">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <h4 class="font-semibold text-gray-800">${r.room_name || '自习室'}</h4>
+                                <p class="text-2xl font-bold text-blue-600 mt-0.5">座位 ${r.seat_no || r.seat_id}</p>
+                            </div>
+                            <span class="status-badge ${statusClass[r.status] || 'badge-cancelled'}">
+                                ${statusLabel[r.status] || r.status}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-5 text-sm text-gray-500 mb-4">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                ${r.date}
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                ${r.start_time?.slice(0,5)} - ${r.end_time?.slice(0,5)}
+                            </span>
+                        </div>
+                        ${r.status === 'pending' ? `
+                        <div class="flex gap-2">
+                            <button onclick="openCheckin(${r.id}, '${r.room_name || ''}', '${r.seat_no || r.seat_id}', '${r.date}', '${r.start_time?.slice(0,5)}', '${r.end_time?.slice(0,5)}')"
+                                class="btn-primary flex-1 text-white py-2 rounded-xl text-sm font-medium flex items-center justify-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                签到
+                            </button>
+                            <button onclick="openCancelModal(${r.id}, '${r.room_name || ''}', '${r.seat_no || r.seat_id}', '${r.date}', '${r.start_time?.slice(0,5)}', '${r.end_time?.slice(0,5)}')"
+                                class="btn-danger flex-1 py-2 rounded-xl text-sm font-medium flex items-center justify-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                                取消预约
+                            </button>
+                        </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (err) {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('empty').classList.remove('hidden');
+            }
+        }
+
+        function switchStatus(status, btn) {
+            currentStatus = status;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadReservations(status);
+        }
+
+        // 签到弹窗
+        function openCheckin(id, roomName, seatNo, date, start, end) {
+            checkinTargetId = id;
+            document.getElementById('checkin-seat-info').innerHTML = `
+                <div>${roomName} · 座位 ${seatNo}</div>
+                <div class="text-blue-500 text-xs mt-0.5">${date} ${start} - ${end}</div>
+            `;
+            document.getElementById('checkin-code').value = '';
+            document.getElementById('checkin-error').classList.add('hidden');
+            document.getElementById('checkin-btn').textContent = '确认签到';
+            document.getElementById('checkin-btn').disabled = false;
+            document.getElementById('checkin-modal').classList.remove('hidden');
+        }
+
+        function closeCheckin() {
+            document.getElementById('checkin-modal').classList.add('hidden');
+            checkinTargetId = null;
+        }
+
+        async function doCheckin() {
+            const code = document.getElementById('checkin-code').value.trim();
+            if (!code) {
+                document.getElementById('checkin-error').textContent = '请输入签到码';
+                document.getElementById('checkin-error').classList.remove('hidden');
+                return;
+            }
+            const btn = document.getElementById('checkin-btn');
+            btn.textContent = '签到中...';
+            btn.disabled = true;
+
+            try {
+                await api.checkIn({ reservation_id: checkinTargetId, checkin_code: code });
+                closeCheckin();
+                loadReservations(currentStatus);
+            } catch (err) {
+                document.getElementById('checkin-error').textContent = err.message;
+                document.getElementById('checkin-error').classList.remove('hidden');
+                btn.textContent = '确认签到';
+                btn.disabled = false;
+            }
+        }
+
+        // 取消弹窗
+        function openCancelModal(id, roomName, seatNo, date, start, end) {
+            cancelTargetId = id;
+            document.getElementById('cancel-info').innerHTML = `
+                <div class="font-medium">${roomName} · 座位 ${seatNo}</div>
+                <div class="text-gray-400 text-xs mt-0.5">${date} ${start} - ${end}</div>
+            `;
+            document.getElementById('cancel-modal').classList.remove('hidden');
+        }
+
+        function closeCancelModal() {
+            document.getElementById('cancel-modal').classList.add('hidden');
+            cancelTargetId = null;
+        }
+
+        async function doCancel() {
+            const btn = document.getElementById('cancel-confirm-btn');
+            btn.textContent = '取消中...';
+            btn.disabled = true;
+            try {
+                await api.cancelReservation(cancelTargetId);
+                closeCancelModal();
+                loadReservations(currentStatus);
+            } catch (err) {
+                alert(err.message);
+                btn.textContent = '确认取消';
+                btn.disabled = false;
+            }
+        }
+
+        function handleLogout() { clearToken(); window.location.href = 'login.html'; }
+
+        loadReservations('pending');
+    </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 · 首页</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; background: #f1f5f9; }
+        .sidebar { background: linear-gradient(180deg, #1a1a2e, #0f3460); min-height: 100vh; width: 220px; }
+        .nav-item { transition: all 0.15s; border-radius: 8px; }
+        .nav-item:hover { background: rgba(255,255,255,0.1); }
+        .nav-item.active { background: rgba(255,255,255,0.15); }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        .stat-card { border-radius: 1rem; padding: 1.5rem; color: white; }
+    </style>
+</head>
+<body class="flex">
+    <!-- 侧边栏 -->
+    <div class="sidebar fixed top-0 left-0 flex flex-col p-4">
+        <div class="text-white mb-8 mt-2">
+            <div class="font-bold text-lg">管理后台</div>
+            <div id="admin-info" class="text-blue-300 text-xs mt-1"></div>
+        </div>
+        <nav class="space-y-1 flex-1">
+            <a href="index.html" class="nav-item active flex items-center gap-3 px-3 py-2.5 text-white text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/></svg>
+                首页概览
+            </a>
+            <a href="rooms.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-blue-200 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                自习室管理
+            </a>
+            <a href="reservations.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-blue-200 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                预约管理
+            </a>
+            <a href="violations.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-blue-200 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                违约记录
+            </a>
+        </nav>
+        <button onclick="handleLogout()" class="mt-4 text-red-300 text-sm px-3 py-2 nav-item text-left flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            退出登录
+        </button>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="ml-[220px] flex-1 p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-6">数据概览</h2>
+
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="stat-card" style="background: linear-gradient(135deg,#0f3460,#533483)">
+                <div id="stat-rooms" class="text-3xl font-bold">-</div>
+                <div class="text-sm opacity-80 mt-1">自习室</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg,#0a7abf,#0f3460)">
+                <div id="stat-seats" class="text-3xl font-bold">-</div>
+                <div class="text-sm opacity-80 mt-1">座位总数</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg,#1a8a6e,#0f3460)">
+                <div id="stat-pending" class="text-3xl font-bold">-</div>
+                <div class="text-sm opacity-80 mt-1">今日预约</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg,#c0392b,#8e44ad)">
+                <div id="stat-violations" class="text-3xl font-bold">-</div>
+                <div class="text-sm opacity-80 mt-1">违约记录</div>
+            </div>
+        </div>
+
+        <!-- 最近预约 -->
+        <div class="card p-5">
+            <h3 class="font-semibold text-gray-800 mb-4">最近预约（前20条）</h3>
+            <div id="recent-list">
+                <div class="text-center text-gray-400 py-8">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        if (!getAdminId()) window.location.href = 'login.html';
+
+        document.getElementById('admin-info').textContent =
+            `${getAdminName() || ''} · ${roleLabel(getAdminRole())}`;
+
+        function roleLabel(r) {
+            return { super_admin: '超级管理员', room_admin: '教室管理员', normal_admin: '普通管理员' }[r] || r;
+        }
+
+        async function loadStats() {
+            try {
+                const [rooms, reservations, violations] = await Promise.all([
+                    api.getAllRooms(),
+                    api.getAllReservations(),
+                    api.getViolations(),
+                ]);
+                const seats = rooms.reduce((s, r) => s, 0);
+                const today = new Date().toISOString().slice(0, 10);
+                const todayCount = reservations.filter(r => r.date === today).length;
+
+                document.getElementById('stat-rooms').textContent = rooms.length;
+                document.getElementById('stat-pending').textContent = todayCount;
+                document.getElementById('stat-violations').textContent = violations.length;
+
+                // 加载座位总数
+                let totalSeats = 0;
+                for (const room of rooms) {
+                    try {
+                        const seats = await api.getRoomSeats(room.id);
+                        totalSeats += seats.length;
+                    } catch {}
+                }
+                document.getElementById('stat-seats').textContent = totalSeats;
+
+                // 最近预约列表
+                const statusLabel = { pending: '待签到', checked_in: '已签到', cancelled: '已取消', violated: '违约' };
+                const statusColor = { pending: 'text-yellow-600 bg-yellow-50', checked_in: 'text-green-600 bg-green-50', cancelled: 'text-gray-500 bg-gray-100', violated: 'text-red-600 bg-red-50' };
+                const recent = reservations.slice(0, 20);
+                document.getElementById('recent-list').innerHTML = recent.length === 0
+                    ? '<div class="text-center text-gray-400 py-8">暂无预约记录</div>'
+                    : `<div class="overflow-x-auto"><table class="w-full text-sm">
+                        <thead><tr class="text-gray-500 border-b border-gray-100">
+                            <th class="text-left py-2 font-medium">ID</th>
+                            <th class="text-left py-2 font-medium">自习室</th>
+                            <th class="text-left py-2 font-medium">座位</th>
+                            <th class="text-left py-2 font-medium">日期</th>
+                            <th class="text-left py-2 font-medium">时间</th>
+                            <th class="text-left py-2 font-medium">状态</th>
+                        </tr></thead>
+                        <tbody>${recent.map(r => `
+                            <tr class="border-b border-gray-50 hover:bg-gray-50">
+                                <td class="py-2 text-gray-400">#${r.id}</td>
+                                <td class="py-2">${r.room_name || '-'}</td>
+                                <td class="py-2 font-medium">${r.seat_no || r.seat_id}</td>
+                                <td class="py-2">${r.date || ''}</td>
+                                <td class="py-2">${r.start_time?.slice(11,16) || ''} - ${r.end_time?.slice(11,16) || ''}</td>
+                                <td class="py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium ${statusColor[r.status] || ''}">${statusLabel[r.status] || r.status}</span></td>
+                            </tr>`).join('')}
+                        </tbody></table></div>`;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function handleLogout() { clearAdmin(); window.location.href = 'login.html'; }
+        loadStats();
+    </script>
+</body>
+</html>

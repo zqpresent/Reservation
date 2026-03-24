@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自习座位预约系统 · 历史记录</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; background: #f0f4f8; }
+        .nav-gradient { background: linear-gradient(135deg, #1e3a5f, #2d6a9f); }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+        .nav-link:hover { background: rgba(255,255,255,0.15); border-radius: 8px; }
+        .nav-link.active { background: rgba(255,255,255,0.2); border-radius: 8px; }
+        .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+        .badge-pending { background: #fef9c3; color: #a16207; }
+        .badge-checked_in { background: #dcfce7; color: #16a34a; }
+        .badge-cancelled { background: #f3f4f6; color: #9ca3af; }
+        .badge-expired { background: #fee2e2; color: #dc2626; }
+        .btn-rebook { background: #eff6ff; color: #2d6a9f; border: 1px solid #bfdbfe; transition: all 0.15s; }
+        .btn-rebook:hover { background: #dbeafe; }
+        .violation-badge { background: #fee2e2; color: #dc2626; display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <nav class="nav-gradient text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+                <span class="font-bold text-lg">自习座位预约</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <a href="index.html" class="nav-link px-3 py-1.5 text-sm">首页</a>
+                <a href="search.html" class="nav-link px-3 py-1.5 text-sm">搜索座位</a>
+                <a href="reservations.html" class="nav-link px-3 py-1.5 text-sm">我的预约</a>
+                <a href="history.html" class="nav-link active px-3 py-1.5 text-sm">历史记录</a>
+                <div class="ml-3 pl-3 border-l border-white/30">
+                    <button onclick="handleLogout()" class="text-sm text-red-300 hover:text-red-100 transition">退出</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4 py-6">
+        <div class="flex items-center justify-between mb-5">
+            <h2 class="text-xl font-bold text-gray-800">历史记录</h2>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div id="stats-row" class="grid grid-cols-3 gap-4 mb-6">
+            <div class="card p-4 text-center">
+                <div id="stat-total" class="text-2xl font-bold text-blue-600">-</div>
+                <div class="text-xs text-gray-400 mt-1">历史预约</div>
+            </div>
+            <div class="card p-4 text-center">
+                <div id="stat-checkin" class="text-2xl font-bold text-green-600">-</div>
+                <div class="text-xs text-gray-400 mt-1">成功签到</div>
+            </div>
+            <div class="card p-4 text-center">
+                <div id="stat-violation" class="text-2xl font-bold text-red-500">-</div>
+                <div class="text-xs text-gray-400 mt-1">违约次数</div>
+            </div>
+        </div>
+
+        <!-- 违约提醒 -->
+        <div id="violation-alert" class="hidden card p-4 mb-5 border border-red-200 bg-red-50">
+            <div class="flex items-start gap-3">
+                <div class="text-red-500 text-xl">⚠️</div>
+                <div>
+                    <div class="font-semibold text-red-700 text-sm">你有未处理的违约记录</div>
+                    <div id="violation-detail" class="text-red-500 text-xs mt-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史预约列表 -->
+        <h3 class="font-semibold text-gray-700 mb-3">历史预约</h3>
+        <div id="loading" class="card p-10 text-center text-gray-400">加载中...</div>
+        <div id="empty" class="hidden card p-12 text-center text-gray-400">
+            <svg class="w-14 h-14 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            暂无历史记录
+        </div>
+        <div id="history-list" class="hidden space-y-3"></div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        if (!getToken()) window.location.href = 'login.html';
+
+        const statusLabel = {
+            pending: '待签到',
+            checked_in: '已签到',
+            cancelled: '已取消',
+            violated: '违约取消'
+        };
+        const statusClass = {
+            pending: 'badge-pending',
+            checked_in: 'badge-checked_in',
+            cancelled: 'badge-cancelled',
+            violated: 'badge-expired'
+        };
+
+        async function loadAll() {
+            try {
+                // 加载全部历史（含所有状态）
+                const [all, violations] = await Promise.all([
+                    api.getMyReservations(''),
+                    fetchViolations()
+                ]);
+
+                // 统计
+                const checkinCount = all.filter(r => r.status === 'checked_in').length;
+                document.getElementById('stat-total').textContent = all.length;
+                document.getElementById('stat-checkin').textContent = checkinCount;
+                document.getElementById('stat-violation').textContent = violations.length;
+
+                // 违约提醒
+                if (violations.length > 0) {
+                    document.getElementById('violation-alert').classList.remove('hidden');
+                    document.getElementById('violation-detail').textContent =
+                        `最近一次：${violations[0]?.reason || '超时未签到'} · ${violations[0]?.created_at?.slice(0,10) || ''}`;
+                }
+
+                // 历史列表（仅显示已完成的：checked_in / cancelled / expired）
+                const history = all.filter(r => r.status !== 'pending').sort((a, b) => (b.date || '') > (a.date || '') ? 1 : -1);
+
+                document.getElementById('loading').classList.add('hidden');
+
+                if (history.length === 0) {
+                    document.getElementById('empty').classList.remove('hidden');
+                    return;
+                }
+
+                const el = document.getElementById('history-list');
+                el.classList.remove('hidden');
+                el.innerHTML = history.map(r => `
+                    <div class="card p-5 flex items-start justify-between gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-semibold text-gray-800">${r.room_name || '自习室'}</span>
+                                <span class="text-gray-400 text-sm">座位 ${r.seat_no || r.seat_id}</span>
+                                <span class="status-badge ${statusClass[r.status] || 'badge-cancelled'}">${statusLabel[r.status] || r.status}</span>
+                            </div>
+                            <div class="flex items-center gap-4 text-sm text-gray-400">
+                                <span>${r.date}</span>
+                                <span>${r.start_time?.slice(0,5)} - ${r.end_time?.slice(0,5)}</span>
+                            </div>
+                        </div>
+                        ${r.status === 'checked_in' || r.status === 'violated' ? `
+                        <button onclick="rebook(${r.seat_id}, '${r.room_name || ''}', '${r.seat_no || r.seat_id}')"
+                            class="btn-rebook px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            再次预约
+                        </button>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (err) {
+                document.getElementById('loading').textContent = '加载失败：' + err.message;
+            }
+        }
+
+        async function fetchViolations() {
+            try {
+                // 假设接口为 /reservations/violations/me 或无此接口时返回空数组
+                const data = await request('GET', '/reservations/violations/me');
+                return Array.isArray(data) ? data : [];
+            } catch {
+                return [];
+            }
+        }
+
+        function rebook(seatId, roomName, seatNo) {
+            // 跳转到搜索页，将来可通过 URL 参数预填座位号
+            window.location.href = `search.html`;
+        }
+
+        function handleLogout() { clearToken(); window.location.href = 'login.html'; }
+
+        loadAll();
+    </script>
+</body>
+</html>

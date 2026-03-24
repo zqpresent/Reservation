@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自习座位预约系统 · 登录</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; }
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 50%, #1a8a6e 100%);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+        }
+        .input-field {
+            transition: all 0.2s;
+            border: 1.5px solid #e2e8f0;
+        }
+        .input-field:focus {
+            border-color: #2d6a9f;
+            box-shadow: 0 0 0 3px rgba(45, 106, 159, 0.15);
+            outline: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2d6a9f, #1a8a6e);
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(45, 106, 159, 0.4);
+        }
+        .btn-primary:active { transform: translateY(0); }
+        .tab-active {
+            color: #2d6a9f;
+            border-bottom: 2px solid #2d6a9f;
+        }
+        .floating-shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+            background: white;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+
+    <!-- 装饰背景圆形 -->
+    <div class="floating-shape w-96 h-96 -top-20 -left-20"></div>
+    <div class="floating-shape w-64 h-64 bottom-10 right-10"></div>
+    <div class="floating-shape w-48 h-48 top-1/2 -right-10"></div>
+
+    <div class="w-full max-w-md relative z-10">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-2xl mb-4">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-white">自习座位预约系统</h1>
+            <p class="text-blue-200 text-sm mt-1">随时随地，轻松预约</p>
+        </div>
+
+        <!-- 登录卡片 -->
+        <div class="glass rounded-3xl shadow-2xl p-8">
+            <!-- Tab 切换 -->
+            <div class="flex border-b border-gray-200 mb-6">
+                <button id="tab-login" onclick="switchTab('login')"
+                    class="flex-1 pb-3 text-sm font-medium tab-active transition-all">
+                    登录
+                </button>
+                <button id="tab-register" onclick="switchTab('register')"
+                    class="flex-1 pb-3 text-sm font-medium text-gray-400 transition-all">
+                    注册
+                </button>
+            </div>
+
+            <!-- 错误提示 -->
+            <div id="error-msg" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm"></div>
+            <!-- 成功提示 -->
+            <div id="success-msg" class="hidden mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-green-600 text-sm"></div>
+
+            <!-- 登录表单 -->
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">学号</label>
+                        <input id="login-student-no" type="text" placeholder="请输入学号"
+                            class="input-field w-full px-4 py-3 rounded-xl text-gray-800 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">密码</label>
+                        <input id="login-password" type="password" placeholder="请输入密码"
+                            class="input-field w-full px-4 py-3 rounded-xl text-gray-800 text-sm">
+                    </div>
+                    <button type="submit" id="login-btn"
+                        class="btn-primary w-full py-3 rounded-xl text-white font-medium text-sm mt-2">
+                        登录
+                    </button>
+                </div>
+            </form>
+
+            <!-- 注册表单 -->
+            <form id="register-form" class="hidden" onsubmit="handleRegister(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">学号</label>
+                        <input id="reg-student-no" type="text" placeholder="请输入学号"
+                            class="input-field w-full px-4 py-3 rounded-xl text-gray-800 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">姓名</label>
+                        <input id="reg-name" type="text" placeholder="请输入姓名"
+                            class="input-field w-full px-4 py-3 rounded-xl text-gray-800 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">院系（选填）</label>
+                        <input id="reg-department" type="text" placeholder="如：计算机学院"
+                            class="input-field w-full px-4 py-3 rounded-xl text-gray-800 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">邮箱（选填，用于提醒）</label>
+                        <input id="reg-email" type="email" placeholder="请输入邮箱"
+                            class="input-field w-full px-4 py-3 rounded-xl text-gray-800 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">密码</label>
+                        <input id="reg-password" type="password" placeholder="请设置密码"
+                            class="input-field w-full px-4 py-3 rounded-xl text-gray-800 text-sm">
+                    </div>
+                    <button type="submit"
+                        class="btn-primary w-full py-3 rounded-xl text-white font-medium text-sm mt-2">
+                        注册
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <p class="text-center text-blue-200 text-xs mt-6">© 2026 自习座位预约系统</p>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        // 已登录则跳转首页
+        if (getToken()) window.location.href = 'index.html';
+
+        function switchTab(tab) {
+            const isLogin = tab === 'login';
+            document.getElementById('login-form').classList.toggle('hidden', !isLogin);
+            document.getElementById('register-form').classList.toggle('hidden', isLogin);
+            document.getElementById('tab-login').className = `flex-1 pb-3 text-sm font-medium transition-all ${isLogin ? 'tab-active' : 'text-gray-400'}`;
+            document.getElementById('tab-register').className = `flex-1 pb-3 text-sm font-medium transition-all ${!isLogin ? 'tab-active' : 'text-gray-400'}`;
+            hideMessages();
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error-msg');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+            document.getElementById('success-msg').classList.add('hidden');
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('success-msg');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+            document.getElementById('error-msg').classList.add('hidden');
+        }
+
+        function hideMessages() {
+            document.getElementById('error-msg').classList.add('hidden');
+            document.getElementById('success-msg').classList.add('hidden');
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const studentNo = document.getElementById('login-student-no').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            if (!studentNo || !password) return showError('请填写学号和密码');
+
+            btn.textContent = '登录中...';
+            btn.disabled = true;
+
+            try {
+                const data = await api.login({ student_no: studentNo, password });
+                setToken(data.access_token);
+                setStudentId(data.student_id);
+                localStorage.setItem('user_type', data.user_type);
+                showSuccess('登录成功，正在跳转...');
+                setTimeout(() => window.location.href = 'index.html', 800);
+            } catch (err) {
+                showError(err.message);
+                btn.textContent = '登录';
+                btn.disabled = false;
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const studentNo = document.getElementById('reg-student-no').value.trim();
+            const name = document.getElementById('reg-name').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const department = document.getElementById('reg-department').value.trim() || null;
+            const email = document.getElementById('reg-email').value.trim() || null;
+
+            if (!studentNo || !name || !password) return showError('请填写学号、姓名和密码');
+
+            try {
+                await api.register({ student_no: studentNo, name, password, department, email });
+                showSuccess('注册成功！请登录');
+                setTimeout(() => switchTab('login'), 1000);
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+    </script>
+</body>
+</html>

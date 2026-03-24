@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 · 自习室管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; background: #f1f5f9; }
+        .sidebar { background: linear-gradient(180deg, #1a1a2e, #0f3460); min-height: 100vh; width: 220px; }
+        .nav-item { transition: all 0.15s; border-radius: 8px; }
+        .nav-item:hover { background: rgba(255,255,255,0.1); }
+        .nav-item.active { background: rgba(255,255,255,0.15); }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        .input-field { border: 1.5px solid #e2e8f0; transition: all 0.2s; }
+        .input-field:focus { border-color: #0f3460; outline: none; box-shadow: 0 0 0 3px rgba(15,52,96,0.1); }
+        .btn-primary { background: linear-gradient(135deg, #0f3460, #533483); }
+        .btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+        .btn-danger:hover { background: #fecaca; }
+    </style>
+</head>
+<body class="flex">
+    <div class="sidebar fixed top-0 left-0 flex flex-col p-4">
+        <div class="text-white mb-8 mt-2">
+            <div class="font-bold text-lg">管理后台</div>
+            <div id="admin-info" class="text-blue-300 text-xs mt-1"></div>
+        </div>
+        <nav class="space-y-1 flex-1">
+            <a href="index.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-blue-200 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/></svg>首页概览</a>
+            <a href="rooms.html" class="nav-item active flex items-center gap-3 px-3 py-2.5 text-white text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>自习室管理</a>
+            <a href="reservations.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-blue-200 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>预约管理</a>
+            <a href="violations.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-blue-200 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>违约记录</a>
+        </nav>
+        <button onclick="handleLogout()" class="mt-4 text-red-300 text-sm px-3 py-2 nav-item text-left flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>退出登录
+        </button>
+    </div>
+
+    <div class="ml-[220px] flex-1 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold text-gray-800">自习室管理</h2>
+            <button onclick="openRoomModal()" class="btn-primary text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                新增自习室
+            </button>
+        </div>
+
+        <div id="room-list" class="space-y-4">
+            <div class="card p-8 text-center text-gray-400">加载中...</div>
+        </div>
+    </div>
+
+    <!-- 新增/编辑自习室弹窗 -->
+    <div id="room-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <h3 id="modal-title" class="font-bold text-gray-800 text-lg mb-4">新增自习室</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">名称 *</label>
+                    <input id="f-name" type="text" class="input-field w-full px-3 py-2.5 rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">楼栋</label>
+                    <input id="f-building" type="text" class="input-field w-full px-3 py-2.5 rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">归属院系（为空则全校通用）</label>
+                    <input id="f-department" type="text" class="input-field w-full px-3 py-2.5 rounded-xl text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">开放时间 *</label>
+                        <input id="f-open" type="time" value="07:00" class="input-field w-full px-3 py-2.5 rounded-xl text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">关闭时间 *</label>
+                        <input id="f-close" type="time" value="22:00" class="input-field w-full px-3 py-2.5 rounded-xl text-sm">
+                    </div>
+                </div>
+            </div>
+            <div id="room-modal-error" class="hidden mt-3 p-2 bg-red-50 text-red-600 rounded-lg text-sm"></div>
+            <div class="flex gap-3 mt-5">
+                <button onclick="closeRoomModal()" class="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm hover:bg-gray-50">取消</button>
+                <button id="room-save-btn" onclick="saveRoom()" class="flex-1 btn-primary text-white py-2.5 rounded-xl text-sm font-medium">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 座位管理弹窗 -->
+    <div id="seat-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div class="p-5 border-b flex items-center justify-between">
+                <h3 id="seat-modal-title" class="font-bold text-gray-800 text-lg"></h3>
+                <button onclick="closeSeatModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-5 overflow-y-auto flex-1">
+                <!-- 新增座位表单 -->
+                <div class="bg-gray-50 rounded-xl p-4 mb-4">
+                    <div class="text-sm font-medium text-gray-700 mb-3">新增座位</div>
+                    <div class="flex gap-3 flex-wrap">
+                        <input id="new-seat-no" type="text" placeholder="座位编号，如 A-01" class="input-field flex-1 px-3 py-2 rounded-lg text-sm min-w-[120px]">
+                        <label class="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
+                            <input id="new-seat-power" type="checkbox" class="w-4 h-4"> 有插座
+                        </label>
+                        <label class="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
+                            <input id="new-seat-window" type="checkbox" class="w-4 h-4"> 靠窗
+                        </label>
+                        <button onclick="addSeat()" class="btn-primary text-white px-4 py-2 rounded-lg text-sm font-medium">添加</button>
+                    </div>
+                    <div id="seat-add-error" class="hidden mt-2 text-red-500 text-xs"></div>
+                </div>
+                <!-- 座位列表 -->
+                <div id="seat-list" class="grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        if (!getAdminId()) window.location.href = 'login.html';
+        document.getElementById('admin-info').textContent = `${getAdminName() || ''} · ${roleLabel(getAdminRole())}`;
+
+        function roleLabel(r) {
+            return { super_admin: '超级管理员', room_admin: '教室管理员', normal_admin: '普通管理员' }[r] || r;
+        }
+
+        let editRoomId = null;
+        let currentRoomId = null;
+
+        async function loadRooms() {
+            try {
+                const rooms = await api.getAllRooms();
+                const el = document.getElementById('room-list');
+                if (!rooms.length) { el.innerHTML = '<div class="card p-8 text-center text-gray-400">暂无自习室</div>'; return; }
+                el.innerHTML = rooms.map(r => `
+                    <div class="card p-5">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <h4 class="font-semibold text-gray-800">${r.name}</h4>
+                                <p class="text-gray-400 text-sm mt-0.5">${r.building || ''} ${r.department ? '· ' + r.department : '· 全校通用'}</p>
+                            </div>
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium ${r.is_active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}">
+                                ${r.is_active ? '运营中' : '已关闭'}
+                            </span>
+                        </div>
+                        <div class="text-sm text-gray-500 mb-4">开放时间：${r.open_time?.slice(0,5)} - ${r.close_time?.slice(0,5)}</div>
+                        <div class="flex gap-2 flex-wrap">
+                            <button onclick="openSeatModal(${r.id}, '${r.name}')" class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition">管理座位</button>
+                            <button onclick="openRoomModal(${r.id})" class="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-100 transition">编辑</button>
+                            <button onclick="toggleRoom(${r.id}, ${r.is_active})" class="px-3 py-1.5 ${r.is_active ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'} rounded-lg text-xs font-medium hover:opacity-80 transition">
+                                ${r.is_active ? '下线' : '上线'}
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                document.getElementById('room-list').innerHTML = `<div class="card p-8 text-center text-red-400">${err.message}</div>`;
+            }
+        }
+
+        function openRoomModal(roomId = null) {
+            editRoomId = roomId;
+            document.getElementById('modal-title').textContent = roomId ? '编辑自习室' : '新增自习室';
+            document.getElementById('f-name').value = '';
+            document.getElementById('f-building').value = '';
+            document.getElementById('f-department').value = '';
+            document.getElementById('f-open').value = '07:00';
+            document.getElementById('f-close').value = '22:00';
+            document.getElementById('room-modal-error').classList.add('hidden');
+            document.getElementById('room-modal').classList.remove('hidden');
+        }
+
+        function closeRoomModal() { document.getElementById('room-modal').classList.add('hidden'); editRoomId = null; }
+
+        async function saveRoom() {
+            const name = document.getElementById('f-name').value.trim();
+            const building = document.getElementById('f-building').value.trim() || null;
+            const department = document.getElementById('f-department').value.trim() || null;
+            const open_time = document.getElementById('f-open').value + ':00';
+            const close_time = document.getElementById('f-close').value + ':00';
+            if (!name) {
+                document.getElementById('room-modal-error').textContent = '请填写名称';
+                document.getElementById('room-modal-error').classList.remove('hidden');
+                return;
+            }
+            try {
+                if (editRoomId) {
+                    await api.updateRoom(editRoomId, { name, building, open_time, close_time });
+                } else {
+                    await api.createRoom({ name, building, department, open_time, close_time });
+                }
+                closeRoomModal();
+                loadRooms();
+            } catch (err) {
+                document.getElementById('room-modal-error').textContent = err.message;
+                document.getElementById('room-modal-error').classList.remove('hidden');
+            }
+        }
+
+        async function toggleRoom(id, isActive) {
+            try {
+                await api.updateRoom(id, { is_active: isActive ? 0 : 1 });
+                loadRooms();
+            } catch (err) { alert(err.message); }
+        }
+
+        // 座位管理
+        async function openSeatModal(roomId, roomName) {
+            currentRoomId = roomId;
+            document.getElementById('seat-modal-title').textContent = `${roomName} · 座位管理`;
+            document.getElementById('new-seat-no').value = '';
+            document.getElementById('new-seat-power').checked = false;
+            document.getElementById('new-seat-window').checked = false;
+            document.getElementById('seat-add-error').classList.add('hidden');
+            document.getElementById('seat-modal').classList.remove('hidden');
+            await loadSeats();
+        }
+
+        function closeSeatModal() { document.getElementById('seat-modal').classList.add('hidden'); currentRoomId = null; }
+
+        async function loadSeats() {
+            try {
+                const seats = await api.getRoomSeats(currentRoomId);
+                const el = document.getElementById('seat-list');
+                if (!seats.length) { el.innerHTML = '<div class="col-span-4 text-center text-gray-400 py-4 text-sm">暂无座位</div>'; return; }
+                el.innerHTML = seats.map(s => `
+                    <div class="bg-gray-50 rounded-lg p-2.5 text-center border ${s.is_active ? 'border-gray-200' : 'border-red-200 bg-red-50'}">
+                        <div class="font-medium text-sm text-gray-800">${s.seat_no}</div>
+                        <div class="text-xs mt-0.5">${s.has_power ? '🔌' : ''}${s.by_window ? '🪟' : ''}</div>
+                        <button onclick="toggleSeat(${s.id}, ${s.is_active})"
+                            class="mt-1.5 text-xs px-2 py-0.5 rounded ${s.is_active ? 'bg-red-50 text-red-400 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'} transition">
+                            ${s.is_active ? '下线' : '上线'}
+                        </button>
+                    </div>
+                `).join('');
+            } catch {}
+        }
+
+        async function addSeat() {
+            const seat_no = document.getElementById('new-seat-no').value.trim();
+            const has_power = document.getElementById('new-seat-power').checked ? 1 : 0;
+            const by_window = document.getElementById('new-seat-window').checked ? 1 : 0;
+            if (!seat_no) {
+                document.getElementById('seat-add-error').textContent = '请填写座位编号';
+                document.getElementById('seat-add-error').classList.remove('hidden');
+                return;
+            }
+            try {
+                await api.createSeat(currentRoomId, { seat_no, has_power, by_window });
+                document.getElementById('new-seat-no').value = '';
+                document.getElementById('seat-add-error').classList.add('hidden');
+                await loadSeats();
+            } catch (err) {
+                document.getElementById('seat-add-error').textContent = err.message;
+                document.getElementById('seat-add-error').classList.remove('hidden');
+            }
+        }
+
+        async function toggleSeat(seatId, isActive) {
+            try {
+                await api.updateSeat(seatId, { is_active: isActive ? 0 : 1 });
+                await loadSeats();
+            } catch (err) { alert(err.message); }
+        }
+
+        function handleLogout() { clearAdmin(); window.location.href = 'login.html'; }
+
+        loadRooms();
+    </script>
+</body>
+</html>
