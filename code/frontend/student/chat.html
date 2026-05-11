@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自习座位预约系统 · 智能助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; background: #f0f4f8; }
+        .nav-gradient { background: linear-gradient(135deg, #1e3a5f, #2d6a9f); }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+        .nav-link:hover { background: rgba(255,255,255,0.15); border-radius: 8px; }
+        .nav-link.active { background: rgba(255,255,255,0.2); border-radius: 8px; }
+        .msg-user { background: #dbeafe; color: #1e3a5f; }
+        .msg-ai { background: #eef2ff; color: #312e81; }
+    </style>
+</head>
+<body>
+    <nav class="nav-gradient text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+                <span class="font-bold text-lg">自习座位预约</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <a href="index.html" class="nav-link px-3 py-1.5 text-sm">首页</a>
+                <a href="search.html" class="nav-link px-3 py-1.5 text-sm">搜索座位</a>
+                <a href="reservations.html" class="nav-link px-3 py-1.5 text-sm">我的预约</a>
+                <a href="history.html" class="nav-link px-3 py-1.5 text-sm">历史记录</a>
+                <a href="chat.html" class="nav-link active px-3 py-1.5 text-sm">智能助手</a>
+                <div class="ml-3 pl-3 border-l border-white/30">
+                    <button onclick="handleLogout()" class="text-sm text-red-300 hover:text-red-100 transition">退出</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4 py-6">
+        <div class="card p-5 mb-4">
+            <h2 class="text-xl font-bold text-gray-800 mb-2">智能助手</h2>
+            <p class="text-sm text-gray-500">可以直接问：今晚 19-21 点有插座的座位、我今天有哪些预约、帮我取消某条预约等。</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+                <button class="text-xs px-3 py-1.5 rounded-full bg-blue-50 text-blue-700" onclick="quickAsk('帮我查今晚19点到21点有插座的座位')">查今晚空位</button>
+                <button class="text-xs px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700" onclick="quickAsk('我今天有哪些预约')">查今日预约</button>
+                <button class="text-xs px-3 py-1.5 rounded-full bg-teal-50 text-teal-700" onclick="quickAsk('帮我查一下待签到的预约')">查待签到</button>
+            </div>
+        </div>
+
+        <div class="card p-4">
+            <div id="chat-box" class="h-[420px] overflow-y-auto space-y-3 p-2">
+                <div class="msg-ai rounded-xl p-3 text-sm">
+                    你好，我是预约助手。你可以让我帮你查空座、查预约、创建预约或取消预约。
+                </div>
+            </div>
+            <div id="chat-error" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm"></div>
+            <div class="mt-3 flex gap-2">
+                <input id="chat-input" type="text" placeholder="例如：帮我找明天 9 点到 11 点靠窗座位"
+                    class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
+                <button id="send-btn" onclick="sendMessage()" class="px-5 py-2.5 rounded-xl text-sm text-white bg-gradient-to-r from-blue-600 to-teal-500">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        if (!getToken()) window.location.href = 'login.html';
+
+        const SESSION_KEY = 'agent_session_id';
+
+        function getSessionId() {
+            let sid = localStorage.getItem(SESSION_KEY);
+            if (!sid) {
+                sid = `s-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+                localStorage.setItem(SESSION_KEY, sid);
+            }
+            return sid;
+        }
+
+        function appendMessage(text, role) {
+            const box = document.getElementById('chat-box');
+            const el = document.createElement('div');
+            el.className = `${role === 'user' ? 'msg-user ml-auto' : 'msg-ai'} rounded-xl p-3 text-sm max-w-[85%] whitespace-pre-wrap`;
+            el.textContent = text;
+            box.appendChild(el);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function clearChatBox() {
+            const box = document.getElementById('chat-box');
+            box.innerHTML = '';
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('chat-error');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('chat-error').classList.add('hidden');
+        }
+
+        function quickAsk(text) {
+            document.getElementById('chat-input').value = text;
+            sendMessage();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const btn = document.getElementById('send-btn');
+            const text = input.value.trim();
+            if (!text) return;
+
+            hideError();
+            appendMessage(text, 'user');
+            input.value = '';
+            btn.disabled = true;
+            btn.textContent = '发送中...';
+
+            try {
+                const sid = getSessionId();
+                const data = await api.agentChat(sid, text);
+                appendMessage(data.reply || '助手暂时没有返回内容。', 'ai');
+            } catch (err) {
+                showError(err.message || '请求失败，请稍后重试');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '发送';
+            }
+        }
+
+        document.getElementById('chat-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        async function loadHistory() {
+            const sid = getSessionId();
+            try {
+                const data = await api.agentHistory(sid, 30);
+                const messages = data.messages || [];
+                clearChatBox();
+                if (messages.length === 0) {
+                    appendMessage('你好，我是预约助手。你可以让我帮你查空座、查预约、创建预约或取消预约。', 'assistant');
+                    return;
+                }
+                messages.forEach((msg) => {
+                    if (!msg.content) return;
+                    appendMessage(msg.content, msg.role === 'user' ? 'user' : 'assistant');
+                });
+            } catch {
+                // 历史读取失败时，保留默认欢迎语，不阻塞聊天
+            }
+        }
+
+        function handleLogout() {
+            clearToken();
+            localStorage.removeItem(SESSION_KEY);
+            window.location.href = '../index.html';
+        }
+
+        loadHistory();
+    </script>
+</body>
+</html>

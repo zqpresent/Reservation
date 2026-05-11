@@ -1,4 +1,5 @@
 const BASE_URL = 'http://localhost:8000';
+const AGENT_BASE_URL = 'http://localhost:8100';
 
 function getToken() {
     return localStorage.getItem('token');
@@ -41,6 +42,35 @@ async function request(method, path, body = null) {
     return data;
 }
 
+async function requestAgent(path, body = null) {
+    const headers = { 'Content-Type': 'application/json' };
+    const options = { method: 'POST', headers };
+    if (body) options.body = JSON.stringify(body);
+
+    const resp = await fetch(AGENT_BASE_URL + path, options);
+    const data = await resp.json();
+
+    if (!resp.ok) {
+        const msg = data.detail || 'Agent 请求失败';
+        const err = new Error(msg);
+        err.status = resp.status;
+        throw err;
+    }
+    return data;
+}
+
+async function requestAgentGet(path) {
+    const resp = await fetch(AGENT_BASE_URL + path);
+    const data = await resp.json();
+    if (!resp.ok) {
+        const msg = data.detail || 'Agent 请求失败';
+        const err = new Error(msg);
+        err.status = resp.status;
+        throw err;
+    }
+    return data;
+}
+
 const api = {
     register: (data) => request('POST', '/auth/register', data),
     login: (data) => request('POST', '/auth/login', data),
@@ -71,4 +101,10 @@ const api = {
     checkIn: (data) => request('POST', '/reservations/checkin', data),
     checkInWechat: (data) => request('POST', '/reservations/checkin/wechat', data),
     getMyNotifications: () => request('GET', `/notifications/logs?student_id=${getStudentId()}`),
+    agentChat: (sessionId, message) => requestAgent('/chat', {
+        session_id: sessionId,
+        student_id: parseInt(getStudentId()),
+        message,
+    }),
+    agentHistory: (sessionId, limit = 50) => requestAgentGet(`/sessions/${encodeURIComponent(sessionId)}/history?limit=${limit}`),
 };
