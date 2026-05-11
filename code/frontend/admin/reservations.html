@@ -44,6 +44,21 @@
     <div class="ml-[220px] flex-1 p-6">
         <h2 class="text-xl font-bold text-gray-800 mb-4">预约管理</h2>
 
+        <div class="card p-4 mb-4">
+            <div class="font-medium text-gray-700 mb-3">代学生新增预约</div>
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-2">
+                <input id="f-student-id" class="input-field px-3 py-2 rounded-lg text-sm" placeholder="学生ID">
+                <input id="f-seat-id" class="input-field px-3 py-2 rounded-lg text-sm" placeholder="座位ID">
+                <input id="f-date" type="date" class="input-field px-3 py-2 rounded-lg text-sm">
+                <input id="f-start" type="time" class="input-field px-3 py-2 rounded-lg text-sm">
+                <input id="f-end" type="time" class="input-field px-3 py-2 rounded-lg text-sm">
+            </div>
+            <div class="mt-3 flex items-center gap-3">
+                <button onclick="createReservationForStudent()" class="px-4 py-2 rounded-lg text-sm text-white bg-[#0f3460] hover:opacity-90">创建预约</button>
+                <span id="create-msg" class="text-sm text-gray-400"></span>
+            </div>
+        </div>
+
         <div class="flex items-center gap-2 mb-5">
             <button class="tab-btn active" onclick="switchStatus('', this)">全部</button>
             <button class="tab-btn" onclick="switchStatus('pending', this)">待签到</button>
@@ -77,7 +92,7 @@
 
     <script src="js/api.js"></script>
     <script>
-        if (!getAdminId()) window.location.href = 'login.html';
+        if (!hasAdminAuth()) window.location.href = 'login.html';
         document.getElementById('admin-info').textContent = `${getAdminName() || ''} · ${roleLabel(getAdminRole())}`;
 
         function roleLabel(r) {
@@ -143,12 +158,37 @@
         async function cancelReservation(id) {
             if (!confirm('确定要取消这条预约吗？')) return;
             try {
-                await api.cancelReservation(id);
+                await api.adminCancelReservation(id);
                 loadReservations(currentStatus);
             } catch (err) { alert(err.message); }
         }
 
-        function handleLogout() { clearAdmin(); window.location.href = 'login.html'; }
+        async function createReservationForStudent() {
+            const studentId = Number(document.getElementById('f-student-id').value);
+            const seatId = Number(document.getElementById('f-seat-id').value);
+            const date = document.getElementById('f-date').value;
+            const start = document.getElementById('f-start').value;
+            const end = document.getElementById('f-end').value;
+            if (!studentId || !seatId || !date || !start || !end) {
+                document.getElementById('create-msg').textContent = '请完整填写字段';
+                return;
+            }
+            try {
+                await api.adminCreateReservation({
+                    student_id: studentId,
+                    seat_id: seatId,
+                    date,
+                    start_time: `${start}:00`,
+                    end_time: `${end}:00`,
+                });
+                document.getElementById('create-msg').textContent = '创建成功';
+                loadReservations(currentStatus);
+            } catch (err) {
+                document.getElementById('create-msg').textContent = `创建失败：${err.message}`;
+            }
+        }
+
+        function handleLogout() { clearAdmin(); window.location.href = '../index.html'; }
 
         loadReservations('');
     </script>

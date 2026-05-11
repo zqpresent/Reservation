@@ -40,6 +40,22 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 违约记录
             </a>
+            <a href="rbac.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-blue-200 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A9 9 0 1118.88 6.196M15 13l4 4m0 0l-4 4m4-4H9"/></svg>
+                角色权限
+            </a>
+            <a href="admin-users.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-blue-200 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V4H2v16h5m10 0v-2a4 4 0 00-8 0v2m8 0H9m8-9a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                账号管理
+            </a>
+            <a href="system.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-blue-200 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 3a1.5 1.5 0 013 0v1.286a7.5 7.5 0 012.41 1.003l.91-.909a1.5 1.5 0 112.121 2.121l-.909.91A7.5 7.5 0 0118.286 9.75H19.5a1.5 1.5 0 010 3h-1.214a7.5 7.5 0 01-1.003 2.41l.909.91a1.5 1.5 0 11-2.121 2.121l-.91-.909A7.5 7.5 0 0112.75 18.286V19.5a1.5 1.5 0 01-3 0v-1.214a7.5 7.5 0 01-2.41-1.003l-.91.909a1.5 1.5 0 11-2.121-2.121l.909-.91A7.5 7.5 0 014.714 12.75H3.5a1.5 1.5 0 010-3h1.214a7.5 7.5 0 011.003-2.41l-.909-.91A1.5 1.5 0 116.929 4.31l.91.909A7.5 7.5 0 019.75 4.214V3z"/></svg>
+                系统参数
+            </a>
+            <a href="stats.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-blue-200 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3v18m-6-6h2m4-4h2m4-3h2M5 21h14"/></svg>
+                数据统计
+            </a>
         </nav>
         <button onclick="handleLogout()" class="mt-4 text-red-300 text-sm px-3 py-2 nav-item text-left flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
@@ -82,7 +98,7 @@
 
     <script src="js/api.js"></script>
     <script>
-        if (!getAdminId()) window.location.href = 'login.html';
+        if (!hasAdminAuth()) window.location.href = 'login.html';
 
         document.getElementById('admin-info').textContent =
             `${getAdminName() || ''} · ${roleLabel(getAdminRole())}`;
@@ -146,7 +162,7 @@
             }
         }
 
-        function handleLogout() { clearAdmin(); window.location.href = 'login.html'; }
+        function handleLogout() { clearAdmin(); window.location.href = '../index.html'; }
         loadStats();
     </script>
 </body>

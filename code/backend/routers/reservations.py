@@ -13,6 +13,16 @@ router = APIRouter(prefix="/reservations", tags=["预约"])
 MAX_HOURS = int(os.getenv("MAX_RESERVE_HOURS", "4"))
 
 
+def get_int_param(db: Session, key: str, default: int) -> int:
+    item = db.query(models.SystemParam).filter(models.SystemParam.key == key).first()
+    if not item:
+        return default
+    try:
+        return int(item.value)
+    except ValueError:
+        return default
+
+
 def reservation_to_dict(r: models.Reservation) -> dict:
     return {
         "id": r.id,
@@ -30,11 +40,8 @@ def reservation_to_dict(r: models.Reservation) -> dict:
     }
 
 
-@router.post("", summary="学生新增预约")
-def create_reservation(
-    body: schemas.ReservationCreate,
-    db: Session = Depends(database.get_db),
-):
+def create_reservation_internal(body: schemas.ReservationCreate, db: Session):
+    max_hours = get_int_param(db, "MAX_RESERVE_HOURS", MAX_HOURS)
     # 解析日期时间
     try:
         target_date = date_type.fromisoformat(body.date)
@@ -47,8 +54,8 @@ def create_reservation(
 
     # 时长校验
     duration = (end_dt - start_dt).total_seconds() / 3600
-    if duration <= 0 or duration > MAX_HOURS:
-        raise HTTPException(status_code=400, detail=f"预约时长需在 1 到 {MAX_HOURS} 小时之间")
+    if duration <= 0 or duration > max_hours:
+        raise HTTPException(status_code=400, detail=f"预约时长需在 1 到 {max_hours} 小时之间")
 
     # 检查座位是否存在且可用
     seat = db.query(models.Seat).filter(models.Seat.id == body.seat_id, models.Seat.is_active == 1).first()
@@ -67,6 +74,7 @@ def create_reservation(
 
     if not body.student_id:
         raise HTTPException(status_code=400, detail="请提供 student_id")
+
     reservation = models.Reservation(
         student_id=body.student_id,
         seat_id=body.seat_id,
@@ -80,6 +88,14 @@ def create_reservation(
         joinedload(models.Reservation.seat).joinedload(models.Seat.room)
     ).filter(models.Reservation.id == reservation.id).first()
     return reservation_to_dict(r)
+
+
+@router.post("", summary="学生新增预约")
+def create_reservation(
+    body: schemas.ReservationCreate,
+    db: Session = Depends(database.get_db),
+):
+    return create_reservation_internal(body, db)
 
 
 @router.get("", summary="查询我的预约")
@@ -132,7 +148,8 @@ def check_in(
     # 允许提前5分钟签到
     if now < reservation.start_time - timedelta(minutes=5):
         raise HTTPException(status_code=400, detail="还未到签到时间")
-    if now > reservation.start_time + timedelta(minutes=15):
+    timeout_minutes = get_int_param(db, "CHECKIN_TIMEOUT_MINUTES", 15)
+    if now > reservation.start_time + timedelta(minutes=timeout_minutes):
         raise HTTPException(status_code=400, detail="签到已超时，预约即将自动取消")
 
     # 验证签到码
@@ -146,6 +163,26 @@ def check_in(
     reservation.status = models.ReservationStatus.checked_in
     db.commit()
     return {"message": "签到成功"}
+
+
+@router.post("/checkin/wechat", response_model=schemas.MessageResponse, summary="微信小程序扫码签到")
+def check_in_wechat(
+    body: schemas.WechatCheckInRequest,
+    db: Session = Depends(database.get_db),
+):
+    if not body.scene_code:
+        raise HTTPException(status_code=400, detail="缺少扫码场景信息")
+    reservation = db.query(models.Reservation).filter(models.Reservation.id == body.reservation_id).first()
+    if not reservation:
+        raise HTTPException(status_code=404, detail="预约不存在")
+    seat = db.query(models.Seat).filter(models.Seat.id == reservation.seat_id).first()
+    if not seat:
+        raise HTTPException(status_code=404, detail="座位不存在")
+    expected_codes = {str(seat.room_id), f"room:{seat.room_id}"}
+    if body.scene_code not in expected_codes:
+        raise HTTPException(status_code=400, detail="二维码与预约教室不匹配")
+    payload = schemas.CheckInRequest(reservation_id=body.reservation_id, checkin_code=body.checkin_code)
+    return check_in(payload, db)
 
 
 # -------------------------------------------------------
@@ -191,3 +228,53 @@ def admin_list_violations(
         }
         for v in violations
     ]
+
+
+@router.get("/admin/violations/summary", response_model=List[dict], summary="管理员查看违约累计统计")
+def admin_violation_summary(
+    db: Session = Depends(database.get_db),
+):
+    rows = db.query(
+        models.Violation.student_id,
+        models.Student.name.label("student_name"),
+        models.Student.student_no.label("student_no"),
+        models.Violation.id,
+    ).join(models.Student, models.Student.id == models.Violation.student_id).all()
+    stats = {}
+    for row in rows:
+        key = row.student_id
+        if key not in stats:
+            stats[key] = {
+                "student_id": row.student_id,
+                "student_name": row.student_name,
+                "student_no": row.student_no,
+                "violation_count": 0,
+            }
+        stats[key]["violation_count"] += 1
+    return sorted(stats.values(), key=lambda x: x["violation_count"], reverse=True)
+
+
+@router.post("/admin/create", summary="管理员代学生新增预约")
+def admin_create_reservation(
+    body: schemas.ReservationCreate,
+    db: Session = Depends(database.get_db),
+):
+    student = db.query(models.Student).filter(models.Student.id == body.student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="学生不存在")
+    return create_reservation_internal(body, db)
+
+
+@router.delete("/admin/{reservation_id}", response_model=schemas.MessageResponse, summary="管理员代学生取消预约")
+def admin_cancel_reservation(
+    reservation_id: int,
+    db: Session = Depends(database.get_db),
+):
+    reservation = db.query(models.Reservation).filter(models.Reservation.id == reservation_id).first()
+    if not reservation:
+        raise HTTPException(status_code=404, detail="预约不存在")
+    if reservation.status not in ["pending", models.ReservationStatus.pending]:
+        raise HTTPException(status_code=400, detail="只有待签到的预约可以取消")
+    reservation.status = models.ReservationStatus.cancelled
+    db.commit()
+    return {"message": "预约已取消"}

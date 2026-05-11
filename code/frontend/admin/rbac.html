@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 · RBAC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; background: #f1f5f9; }
+        .sidebar { background: linear-gradient(180deg, #1a1a2e, #0f3460); min-height: 100vh; width: 220px; }
+        .nav-item { transition: all 0.15s; border-radius: 8px; }
+        .nav-item:hover { background: rgba(255,255,255,0.1); }
+        .nav-item.active { background: rgba(255,255,255,0.15); }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        .input-field { border: 1.5px solid #e2e8f0; transition: all .2s; }
+    </style>
+</head>
+<body class="flex">
+    <div class="sidebar fixed top-0 left-0 flex flex-col p-4">
+        <div class="text-white mb-8 mt-2">
+            <div class="font-bold text-lg">管理后台</div>
+            <div id="admin-info" class="text-blue-300 text-xs mt-1"></div>
+        </div>
+        <nav class="space-y-1 flex-1">
+            <a href="index.html" class="nav-item px-3 py-2.5 text-blue-200 text-sm block">首页概览</a>
+            <a href="rooms.html" class="nav-item px-3 py-2.5 text-blue-200 text-sm block">自习室管理</a>
+            <a href="reservations.html" class="nav-item px-3 py-2.5 text-blue-200 text-sm block">预约管理</a>
+            <a href="violations.html" class="nav-item px-3 py-2.5 text-blue-200 text-sm block">违约记录</a>
+            <a href="rbac.html" class="nav-item active px-3 py-2.5 text-white text-sm block">角色权限</a>
+            <a href="admin-users.html" class="nav-item px-3 py-2.5 text-blue-200 text-sm block">账号管理</a>
+            <a href="system.html" class="nav-item px-3 py-2.5 text-blue-200 text-sm block">系统参数</a>
+            <a href="stats.html" class="nav-item px-3 py-2.5 text-blue-200 text-sm block">数据统计</a>
+        </nav>
+    </div>
+
+    <div class="ml-[220px] flex-1 p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">角色与权限管理</h2>
+        <div class="card p-4 mb-4">
+            <div class="font-medium text-gray-700 mb-3">新建角色</div>
+            <div class="flex gap-2">
+                <input id="role-key" class="input-field px-3 py-2 rounded-lg text-sm" placeholder="角色key（如 teacher_admin）">
+                <input id="role-name" class="input-field px-3 py-2 rounded-lg text-sm" placeholder="角色名称">
+                <button onclick="createRole()" class="px-4 py-2 rounded-lg bg-[#0f3460] text-white text-sm">创建</button>
+            </div>
+            <div id="role-msg" class="text-sm text-gray-400 mt-2"></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="card p-4">
+                <div class="font-medium text-gray-700 mb-2">角色列表</div>
+                <div id="roles" class="text-sm text-gray-400">加载中...</div>
+            </div>
+            <div class="card p-4">
+                <div class="font-medium text-gray-700 mb-2">权限点列表</div>
+                <div id="perms" class="text-sm text-gray-400">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        if (!hasAdminAuth()) window.location.href = 'login.html';
+        document.getElementById('admin-info').textContent = `${getAdminName() || ''} · ${getAdminRole() || ''}`;
+
+        async function loadAll() {
+            try {
+                const [roles, perms] = await Promise.all([api.getRoles(), api.getPermissions()]);
+                document.getElementById('roles').innerHTML = roles.map(r => `<div class="py-1 border-b border-gray-100">${r.name} (${r.key})</div>`).join('') || '暂无角色';
+                document.getElementById('perms').innerHTML = perms.map(p => `<div class="py-1 border-b border-gray-100">${p.code} · ${p.name}</div>`).join('') || '暂无权限点';
+            } catch (err) {
+                document.getElementById('roles').textContent = err.message;
+                document.getElementById('perms').textContent = err.message;
+            }
+        }
+
+        async function createRole() {
+            const key = document.getElementById('role-key').value.trim();
+            const name = document.getElementById('role-name').value.trim();
+            if (!key || !name) return;
+            try {
+                await api.createRole({ key, name });
+                document.getElementById('role-msg').textContent = '创建成功';
+                loadAll();
+            } catch (err) {
+                document.getElementById('role-msg').textContent = `创建失败：${err.message}`;
+            }
+        }
+        loadAll();
+    </script>
+</body>
+</html>

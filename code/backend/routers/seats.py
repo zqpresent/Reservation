@@ -94,11 +94,18 @@ def search_seats(
         models.Reservation.end_time > start_dt,
     ).all()]]
 
+    for seat in available:
+        if seat.room:
+            seat.room_name = seat.room.name
     return available
 
 
 @router.post("/admin/{room_id}", response_model=schemas.SeatInfo, summary="管理员新增座位")
-def admin_create_seat(room_id: int, body: schemas.SeatCreate, db: Session = Depends(database.get_db)):
+def admin_create_seat(
+    room_id: int,
+    body: schemas.SeatCreate,
+    db: Session = Depends(database.get_db),
+):
     room = db.query(models.Room).filter(models.Room.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="自习室不存在")
@@ -134,3 +141,16 @@ def admin_update_seat(
     db.commit()
     db.refresh(seat)
     return seat
+
+
+@router.delete("/admin/{seat_id}", response_model=schemas.MessageResponse, summary="管理员注销座位")
+def admin_delete_seat(
+    seat_id: int,
+    db: Session = Depends(database.get_db),
+):
+    seat = db.query(models.Seat).filter(models.Seat.id == seat_id).first()
+    if not seat:
+        raise HTTPException(status_code=404, detail="座位不存在")
+    seat.is_active = 0
+    db.commit()
+    return {"message": "座位已注销"}

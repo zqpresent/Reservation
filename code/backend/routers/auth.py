@@ -48,6 +48,15 @@ def admin_register(body: schemas.AdminRegister, db: Session = Depends(database.g
     db.add(admin)
     db.commit()
     db.refresh(admin)
+    role_row = db.query(models.Role).filter(models.Role.key == role).first()
+    if role_row:
+        exists = db.query(models.AdminUserRole).filter(
+            models.AdminUserRole.admin_id == admin.id,
+            models.AdminUserRole.role_id == role_row.id,
+        ).first()
+        if not exists:
+            db.add(models.AdminUserRole(admin_id=admin.id, role_id=role_row.id))
+            db.commit()
     return admin
 
 
@@ -76,3 +85,40 @@ def get_me(student_id: int = Query(...), db: Session = Depends(database.get_db))
 @router.get("/admin/me", response_model=schemas.AdminInfo, summary="获取当前管理员信息")
 def get_admin_me(current: models.AdminUser = Depends(auth_utils.get_current_admin)):
     return current
+
+
+@router.get("/admin/users", response_model=list[schemas.AdminUserInfo], summary="管理员账号列表")
+def list_admin_users(
+    db: Session = Depends(database.get_db),
+):
+    return db.query(models.AdminUser).order_by(models.AdminUser.id.asc()).all()
+
+
+@router.put("/admin/users/{admin_id}/status", response_model=schemas.AdminUserInfo, summary="更新管理员账号状态")
+def update_admin_status(
+    admin_id: int,
+    is_active: int = Query(..., ge=0, le=1),
+    db: Session = Depends(database.get_db),
+):
+    admin = db.query(models.AdminUser).filter(models.AdminUser.id == admin_id).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="管理员不存在")
+    admin.is_active = is_active
+    db.commit()
+    db.refresh(admin)
+    return admin
+
+
+@router.delete("/admin/users/{admin_id}", response_model=schemas.MessageResponse, summary="注销管理员账号")
+def delete_admin_user(
+    admin_id: int,
+    db: Session = Depends(database.get_db),
+):
+    admin = db.query(models.AdminUser).filter(models.AdminUser.id == admin_id).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="管理员不存在")
+    if admin.username == "admin":
+        raise HTTPException(status_code=400, detail="默认超级管理员不可删除")
+    db.delete(admin)
+    db.commit()
+    return {"message": "管理员账号已注销"}

@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from main import app
 from database import SessionLocal
 import models
-from auth import hash_password
+from auth import hash_password, create_token
 
 
 # -------------------------------------------------------
@@ -32,6 +32,7 @@ def clean_db():
     """每个测试前清空业务数据，保留自习室、座位及超管账号"""
     db = SessionLocal()
     try:
+        db.query(models.NotificationLog).delete()
         db.query(models.Violation).delete()
         db.query(models.Reservation).delete()
         db.query(models.Student).delete()
@@ -57,7 +58,15 @@ def clean_db():
 
 @pytest_asyncio.fixture
 async def client():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    db = SessionLocal()
+    try:
+        admin = db.query(models.AdminUser).filter_by(username="admin").first()
+        admin_id = admin.id if admin else 1
+    finally:
+        db.close()
+    token = create_token({"sub": admin_id, "type": "admin", "role": "super_admin"})
+    headers = {"Authorization": f"Bearer {token}"}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers=headers) as c:
         yield c
 
 
@@ -521,7 +530,80 @@ class TestReservations:
 
 
 # -------------------------------------------------------
-# 5. 健康检查
+# 5. 第二阶段接口
+# -------------------------------------------------------
+class TestStageTwoApis:
+
+    @pytest.mark.asyncio
+    async def test_system_params_crud(self, client):
+        # 新建（批量接口）
+        r = await client.put("/system/params", json={"items": [{"key": "X_TEST_PARAM", "value": "1"}]})
+        assert r.status_code == 200
+        # 单项更新
+        r2 = await client.put("/system/params/X_TEST_PARAM", json={"value": "2"})
+        assert r2.status_code == 200
+        assert r2.json()["value"] == "2"
+
+    @pytest.mark.asyncio
+    async def test_admin_create_and_cancel_reservation(self, client):
+        student_id = await register_and_login_student(client)
+        seat_id = await get_first_seat_id(client)
+        r = await client.post("/reservations/admin/create", json={
+            "student_id": student_id,
+            "seat_id": seat_id,
+            "date": tomorrow_date(),
+            "start_time": "13:00:00",
+            "end_time": "14:00:00",
+        })
+        assert r.status_code == 200
+        rid = r.json()["id"]
+        r2 = await client.delete(f"/reservations/admin/{rid}")
+        assert r2.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_seat_admin_delete(self, client):
+        rooms = (await client.get("/rooms/admin/all")).json()
+        room_id = rooms[0]["id"]
+        unique_no = f"D{datetime.now().strftime('%H%M%S%f')}"
+        created = await client.post(f"/seats/admin/{room_id}", json={
+            "seat_no": unique_no,
+            "has_power": 0,
+            "by_window": 0,
+        })
+        assert created.status_code == 200
+        seat_id = created.json()["id"]
+        deleted = await client.delete(f"/seats/admin/{seat_id}")
+        assert deleted.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_rbac_role_lifecycle(self, client):
+        role = await client.post("/rbac/roles", json={"key": "test_role", "name": "测试角色"})
+        assert role.status_code == 200
+        role_id = role.json()["id"]
+        perms = await client.get("/rbac/permissions")
+        assert perms.status_code == 200
+        perm_ids = [p["id"] for p in perms.json()[:2]]
+        bind = await client.put(f"/rbac/roles/{role_id}/permissions", json={"permission_ids": perm_ids})
+        assert bind.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_stats_endpoints(self, client):
+        occ = await client.get("/stats/occupancy")
+        trend = await client.get("/stats/reservations/trend?days=7")
+        assert occ.status_code == 200
+        assert trend.status_code == 200
+        assert isinstance(occ.json(), list)
+        assert isinstance(trend.json(), list)
+
+    @pytest.mark.asyncio
+    async def test_notification_logs_endpoint(self, client):
+        resp = await client.get("/notifications/logs")
+        assert resp.status_code == 200
+        assert isinstance(resp.json(), list)
+
+
+# -------------------------------------------------------
+# 6. 健康检查
 # -------------------------------------------------------
 class TestHealth:
 

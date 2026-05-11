@@ -84,13 +84,16 @@
                     <button type="submit" class="btn-admin w-full py-3 rounded-xl text-white font-medium text-sm mt-2">注册</button>
                 </div>
             </form>
+            <a href="../index.html" class="block text-center text-xs text-gray-500 hover:text-gray-700 mt-4">
+                返回主页面
+            </a>
         </div>
         <p class="text-center text-blue-400 text-xs mt-6">默认账号 admin / admin123</p>
     </div>
 
     <script src="js/api.js"></script>
     <script>
-        if (getAdminId()) window.location.href = 'index.html';
+        if (hasAdminAuth()) window.location.href = 'index.html';
 
         function switchTab(tab) {
             const isLogin = tab === 'login';
@@ -120,7 +123,7 @@
             if (!username || !password) return showError('请填写用户名和密码');
             try {
                 const data = await api.adminLogin({ username, password });
-                setAdminInfo(data.admin_id, data.admin_role, data.admin_name);
+                setAdminInfo(data.admin_id, data.admin_role, data.admin_name, data.access_token);
                 showSuccess('登录成功，正在跳转...');
                 setTimeout(() => window.location.href = 'index.html', 600);
             } catch (err) { showError(err.message); }

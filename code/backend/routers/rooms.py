@@ -74,12 +74,17 @@ def list_seats(
 # 管理员接口
 # -------------------------------------------------------
 @router.get("/admin/all", response_model=List[schemas.RoomInfo], summary="管理员查询所有自习室")
-def admin_list_rooms(db: Session = Depends(database.get_db)):
+def admin_list_rooms(
+    db: Session = Depends(database.get_db),
+):
     return db.query(models.Room).all()
 
 
 @router.post("/admin", response_model=schemas.RoomInfo, summary="管理员新增自习室")
-def admin_create_room(body: schemas.RoomCreate, db: Session = Depends(database.get_db)):
+def admin_create_room(
+    body: schemas.RoomCreate,
+    db: Session = Depends(database.get_db),
+):
     room = models.Room(**body.model_dump())
     db.add(room)
     db.commit()
@@ -88,7 +93,11 @@ def admin_create_room(body: schemas.RoomCreate, db: Session = Depends(database.g
 
 
 @router.put("/admin/{room_id}", response_model=schemas.RoomInfo, summary="管理员修改自习室")
-def admin_update_room(room_id: int, body: schemas.RoomUpdate, db: Session = Depends(database.get_db)):
+def admin_update_room(
+    room_id: int,
+    body: schemas.RoomUpdate,
+    db: Session = Depends(database.get_db),
+):
     room = db.query(models.Room).filter(models.Room.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="自习室不存在")
@@ -100,7 +109,10 @@ def admin_update_room(room_id: int, body: schemas.RoomUpdate, db: Session = Depe
 
 
 @router.delete("/admin/{room_id}", response_model=schemas.MessageResponse, summary="管理员注销自习室")
-def admin_delete_room(room_id: int, db: Session = Depends(database.get_db)):
+def admin_delete_room(
+    room_id: int,
+    db: Session = Depends(database.get_db),
+):
     room = db.query(models.Room).filter(models.Room.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="自习室不存在")

@@ -24,6 +24,8 @@ function clearToken() {
 
 async function request(method, path, body = null) {
     const headers = { 'Content-Type': 'application/json' };
+    const token = getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const options = { method, headers };
     if (body) options.body = JSON.stringify(body);
 
@@ -67,4 +69,6 @@ const api = {
 
     cancelReservation: (id) => request('DELETE', `/reservations/${id}`),
     checkIn: (data) => request('POST', '/reservations/checkin', data),
+    checkInWechat: (data) => request('POST', '/reservations/checkin/wechat', data),
+    getMyNotifications: () => request('GET', `/notifications/logs?student_id=${getStudentId()}`),
 };

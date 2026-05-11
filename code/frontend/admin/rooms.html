@@ -124,7 +124,7 @@
 
     <script src="js/api.js"></script>
     <script>
-        if (!getAdminId()) window.location.href = 'login.html';
+        if (!hasAdminAuth()) window.location.href = 'login.html';
         document.getElementById('admin-info').textContent = `${getAdminName() || ''} · ${roleLabel(getAdminRole())}`;
 
         function roleLabel(r) {
@@ -234,10 +234,16 @@
                     <div class="bg-gray-50 rounded-lg p-2.5 text-center border ${s.is_active ? 'border-gray-200' : 'border-red-200 bg-red-50'}">
                         <div class="font-medium text-sm text-gray-800">${s.seat_no}</div>
                         <div class="text-xs mt-0.5">${s.has_power ? '🔌' : ''}${s.by_window ? '🪟' : ''}</div>
-                        <button onclick="toggleSeat(${s.id}, ${s.is_active})"
-                            class="mt-1.5 text-xs px-2 py-0.5 rounded ${s.is_active ? 'bg-red-50 text-red-400 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'} transition">
-                            ${s.is_active ? '下线' : '上线'}
-                        </button>
+                        <div class="mt-1.5 flex items-center justify-center gap-1">
+                            <button onclick="toggleSeat(${s.id}, ${s.is_active})"
+                                class="text-xs px-2 py-0.5 rounded ${s.is_active ? 'bg-red-50 text-red-400 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'} transition">
+                                ${s.is_active ? '下线' : '上线'}
+                            </button>
+                            <button onclick="removeSeat(${s.id})"
+                                class="text-xs px-2 py-0.5 rounded bg-gray-200 text-gray-600 hover:bg-gray-300 transition">
+                                注销
+                            </button>
+                        </div>
                     </div>
                 `).join('');
             } catch {}
@@ -270,7 +276,15 @@
             } catch (err) { alert(err.message); }
         }
 
-        function handleLogout() { clearAdmin(); window.location.href = 'login.html'; }
+        async function removeSeat(seatId) {
+            if (!confirm('确认注销该座位？')) return;
+            try {
+                await api.deleteSeat(seatId);
+                await loadSeats();
+            } catch (err) { alert(err.message); }
+        }
+
+        function handleLogout() { clearAdmin(); window.location.href = '../index.html'; }
 
         loadRooms();
     </script>

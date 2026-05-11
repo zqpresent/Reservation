@@ -108,10 +108,11 @@
         async function loadAll() {
             try {
                 // 加载全部历史（含所有状态）
-                const [all, violations] = await Promise.all([
+                const [all, notices] = await Promise.all([
                     api.getMyReservations(''),
-                    fetchViolations()
+                    api.getMyNotifications()
                 ]);
+                const violations = all.filter(r => r.status === 'violated');
 
                 // 统计
                 const checkinCount = all.filter(r => r.status === 'checked_in').length;
@@ -123,11 +124,16 @@
                 if (violations.length > 0) {
                     document.getElementById('violation-alert').classList.remove('hidden');
                     document.getElementById('violation-detail').textContent =
-                        `最近一次：${violations[0]?.reason || '超时未签到'} · ${violations[0]?.created_at?.slice(0,10) || ''}`;
+                        `最近一次：超时未签到 · ${violations[0]?.date || ''}`;
                 }
 
                 // 历史列表（仅显示已完成的：checked_in / cancelled / expired）
                 const history = all.filter(r => r.status !== 'pending').sort((a, b) => (b.date || '') > (a.date || '') ? 1 : -1);
+                const autoCancelNotice = notices.find(n => n.type === 'auto_cancel');
+                if (autoCancelNotice && violations.length > 0) {
+                    document.getElementById('violation-detail').textContent =
+                        `${autoCancelNotice.title} · ${String(autoCancelNotice.created_at || '').slice(0, 10)}`;
+                }
 
                 document.getElementById('loading').classList.add('hidden');
 
@@ -167,22 +173,12 @@
             }
         }
 
-        async function fetchViolations() {
-            try {
-                // 假设接口为 /reservations/violations/me 或无此接口时返回空数组
-                const data = await request('GET', '/reservations/violations/me');
-                return Array.isArray(data) ? data : [];
-            } catch {
-                return [];
-            }
-        }
-
         function rebook(seatId, roomName, seatNo) {
             // 跳转到搜索页，将来可通过 URL 参数预填座位号
             window.location.href = `search.html`;
         }
 
-        function handleLogout() { clearToken(); window.location.href = 'login.html'; }
+        function handleLogout() { clearToken(); window.location.href = '../index.html'; }
 
         loadAll();
     </script>

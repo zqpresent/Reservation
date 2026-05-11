@@ -92,6 +92,7 @@ class RoomCreate(RoomBase):
 class RoomUpdate(BaseModel):
     name: Optional[str] = None
     building: Optional[str] = None
+    department: Optional[str] = None
     open_time: Optional[time] = None
     close_time: Optional[time] = None
     is_active: Optional[int] = None
@@ -124,6 +125,7 @@ class SeatInfo(SeatBase):
     id: int
     room_id: int
     is_active: int
+    room_name: Optional[str] = None
 
 
 class SeatDetail(SeatInfo):
@@ -168,6 +170,10 @@ class CheckInRequest(BaseModel):
     checkin_code: str
 
 
+class WechatCheckInRequest(CheckInRequest):
+    scene_code: Optional[str] = None
+
+
 # -------------------------------------------------------
 # 搜索
 # -------------------------------------------------------
@@ -178,3 +184,95 @@ class SeatSearchParams(BaseModel):
     has_power: Optional[int] = None
     by_window: Optional[int] = None
     room_id: Optional[int] = None
+
+
+# -------------------------------------------------------
+# 通知
+# -------------------------------------------------------
+class NotificationLogInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    student_id: int
+    reservation_id: int
+    type: str
+    channel: str
+    title: str
+    content: str
+    status: str
+    created_at: datetime
+
+
+# -------------------------------------------------------
+# RBAC
+# -------------------------------------------------------
+class PermissionInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    code: str
+    name: str
+    resource: str
+    action: str
+
+
+class RoleCreate(BaseModel):
+    key: str
+    name: str
+
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
+    is_active: Optional[int] = None
+
+
+class RoleInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    key: str
+    name: str
+    is_active: int
+
+
+class RolePermissionUpdate(BaseModel):
+    permission_ids: list[int]
+
+
+class AdminRoleBindingUpdate(BaseModel):
+    role_ids: list[int]
+
+
+class AdminUserInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    name: str
+    role: AdminRole
+    is_active: int
+
+
+# -------------------------------------------------------
+# 系统参数
+# -------------------------------------------------------
+class SystemParamInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    key: str
+    value: str
+    description: Optional[str] = None
+
+
+class SystemParamUpdate(BaseModel):
+    value: str
+
+
+class SystemParamBatchUpdateItem(BaseModel):
+    key: str
+    value: str
+
+
+class SystemParamBatchUpdate(BaseModel):
+    items: list[SystemParamBatchUpdateItem]
